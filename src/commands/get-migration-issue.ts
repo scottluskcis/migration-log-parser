@@ -2,6 +2,7 @@ import * as commander from "commander";
 import { parseFloatOption, parseIntOption } from "../utils.js";
 import { Arguments } from "../types.js";
 import VERSION from "../version.js";
+import { init_client } from "../init.js";
 
 const getMigrationIssueCommand = new commander.Command();
 const { Option } = commander;
@@ -115,18 +116,27 @@ getMigrationIssueCommand
       .default("5")
       .argParser(parseIntOption)
   )
-  .addOption(
-    new Option(
-      "--resume-from-last-save",
-      "Resume from the last saved state"
-    ).env("RESUME_FROM_LAST_SAVE")
-  )
-  .action(async (options: Arguments) => {
-    console.log("Version:", VERSION);
+  .action(async (opts: Arguments) => {
+    const { logger, client } = await init_client(opts);
 
-    console.log("Starting get migration issues...");
+    logger.info("Starting get migration issues...");
+
+    let count = 0;
+    for await (const repo of client.listReposForOrg(
+      opts.orgName,
+      opts.pageSize ?? 50
+    )) {
+      logger.info(`Processing repo: ${repo.name}`);
+      count++;
+
+      if (count > 100) {
+        logger.info("Processed 100 repositories, stopping...");
+        break;
+      }
+    }
+
     // await run(options);
-    console.log("Get Migration issues completed.");
+    logger.info("Get Migration issues completed.");
   });
 
 export default getMigrationIssueCommand;
