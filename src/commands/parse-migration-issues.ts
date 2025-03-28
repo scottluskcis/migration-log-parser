@@ -8,11 +8,11 @@ import { MigrationSummary } from "../types.js";
 import * as fs from "fs";
 import * as path from "path";
 
-const getMigrationIssueCommand = new commander.Command();
+const parseMigrationIssuesCommand = new commander.Command();
 const { Option } = commander;
 
-getMigrationIssueCommand
-  .name("get-migration-issues")
+parseMigrationIssuesCommand
+  .name("parse-migration-issues")
   .description("Get migration issue for a repository")
   .version(VERSION)
   .addOption(
@@ -234,4 +234,4 @@ getMigrationIssueCommand
     logger.info("Get Migration issues completed.");
   });
 
-export default getMigrationIssueCommand;
+export default parseMigrationIssuesCommand;

@@ -1,10 +1,10 @@
-import { createAppAuth } from '@octokit/auth-app';
+import { createAppAuth } from "@octokit/auth-app";
 import type {
   AppAuthOptions,
   InstallationAuthOptions,
-} from '@octokit/auth-app';
-import { Logger } from './types.js';
-import { readFileSync } from 'fs';
+} from "@octokit/auth-app";
+import { Logger } from "./types.js";
+import { readFileSync } from "fs";
 
 export interface AuthConfig {
   authStrategy?: typeof createAppAuth | undefined;
@@ -15,7 +15,7 @@ const getAuthAppId = (appId?: string): number => {
   const authAppId = appId || process.env.GITHUB_APP_ID;
   if (!authAppId || isNaN(parseInt(authAppId))) {
     throw new Error(
-      'You must specify a GitHub app ID using the --app-id argument or GITHUB_APP_ID environment variable.',
+      "You must specify a GitHub app ID using the --app-id argument or GITHUB_APP_ID environment variable."
     );
   }
   return parseInt(authAppId);
@@ -23,20 +23,20 @@ const getAuthAppId = (appId?: string): number => {
 
 const getAuthPrivateKey = (
   privateKey?: string,
-  privateKeyFile?: string,
+  privateKeyFile?: string
 ): string => {
   let authPrivateKey: string | undefined;
 
   if (privateKeyFile || process.env.GITHUB_APP_PRIVATE_KEY_FILE) {
     const filePath = privateKeyFile || process.env.GITHUB_APP_PRIVATE_KEY_FILE;
-    authPrivateKey = filePath ? readFileSync(filePath, 'utf-8') : undefined;
+    authPrivateKey = filePath ? readFileSync(filePath, "utf-8") : undefined;
   } else if (privateKey || process.env.GITHUB_APP_PRIVATE_KEY) {
     authPrivateKey = privateKey || process.env.GITHUB_APP_PRIVATE_KEY;
   }
 
   if (!authPrivateKey) {
     throw new Error(
-      'You must specify a GitHub app private key using the --private-key argument, --private-key-file argument, GITHUB_APP_PRIVATE_KEY_FILE environment variable, or GITHUB_APP_PRIVATE_KEY environment variable.',
+      "You must specify a GitHub app private key using the --private-key argument, --private-key-file argument, GITHUB_APP_PRIVATE_KEY_FILE environment variable, or GITHUB_APP_PRIVATE_KEY environment variable."
     );
   }
 
@@ -48,7 +48,7 @@ const getAuthInstallationId = (appInstallationId?: string): number => {
     appInstallationId || process.env.GITHUB_APP_INSTALLATION_ID;
   if (!authInstallationId || isNaN(parseInt(authInstallationId))) {
     throw new Error(
-      'You must specify a GitHub app installation ID using the --app-installation-id argument or GITHUB_APP_INSTALLATION_ID environment variable.',
+      "You must specify a GitHub app installation ID using the --app-installation-id argument or GITHUB_APP_INSTALLATION_ID environment variable."
     );
   }
   return parseInt(authInstallationId);
@@ -58,7 +58,7 @@ const getTokenAuthConfig = (accessToken?: string): AuthConfig => {
   const authToken = accessToken || process.env.GITHUB_TOKEN;
   if (!authToken) {
     throw new Error(
-      'You must specify a GitHub access token using the --access-token argument or GITHUB_TOKEN environment variable.',
+      "You must specify a GitHub access token using the --access-token argument or GITHUB_TOKEN environment variable."
     );
   }
   return { authStrategy: undefined, auth: authToken };
@@ -68,10 +68,10 @@ const getInstallationAuthConfig = (
   appId?: string,
   privateKey?: string,
   privateKeyFile?: string,
-  appInstallationId?: string,
+  appInstallationId?: string
 ): AuthConfig => {
   const auth: InstallationAuthOptions = {
-    type: 'installation',
+    type: "installation",
     appId: getAuthAppId(appId),
     privateKey: getAuthPrivateKey(privateKey, privateKeyFile),
     installationId: getAuthInstallationId(appInstallationId),
@@ -97,22 +97,22 @@ export const createAuthConfig = ({
   try {
     if (appInstallationId || process.env.GITHUB_APP_INSTALLATION_ID) {
       logger.info(
-        'GitHub App installation ID detected. Authenticating using GitHub App installation...',
+        "GitHub App installation ID detected. Authenticating using GitHub App installation..."
       );
       return getInstallationAuthConfig(
         appId,
         privateKey,
         privateKeyFile,
-        appInstallationId,
+        appInstallationId
       );
     } else {
       logger.info(
-        'No GitHub App installation ID detected. Defaulting to authenticating using an access token...',
+        "No GitHub App installation ID detected. Defaulting to authenticating using an access token..."
       );
       return getTokenAuthConfig(accessToken);
     }
   } catch (e) {
-    logger.error('Error creating and validating auth config', e);
+    logger.error("Error creating and validating auth config", e);
     throw e;
   }
 };
