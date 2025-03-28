@@ -4,11 +4,11 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "get-migration-issues",
+      "name": "parse-migration-issues",
       "skipFiles": ["<node_internals>/**"],
       "runtimeExecutable": "tsx",
       "program": "${workspaceFolder}/src/index.ts",
-      "args": ["get-migration-issues"],
+      "args": ["parse-migration-issues"],
       "sourceMaps": true,
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",

@@ -17,7 +17,7 @@ export interface RetryState {
 export async function withRetry<T>(
   operation: () => Promise<T>,
   config: RetryConfig,
-  onRetry?: (state: RetryState) => void,
+  onRetry?: (state: RetryState) => void
 ): Promise<T> {
   let lastError: Error | undefined;
   let currentDelay = config.initialDelayMs;
@@ -43,7 +43,7 @@ export async function withRetry<T>(
         error instanceof Error
           ? error
           : new Error(
-              typeof error === 'object' ? JSON.stringify(error) : String(error),
+              typeof error === "object" ? JSON.stringify(error) : String(error)
             );
 
       if (attempt === config.maxAttempts) {
@@ -62,15 +62,15 @@ export async function withRetry<T>(
       await sleep(currentDelay);
       currentDelay = Math.min(
         currentDelay * config.backoffFactor,
-        config.maxDelayMs,
+        config.maxDelayMs
       );
     }
   }
 
   throw new Error(
     `Operation failed after ${config.maxAttempts} attempts: ${
-      lastError?.message || 'No error message available'
-    }${lastError?.stack ? `\nStack trace: ${lastError.stack}` : ''}`,
+      lastError?.message || "No error message available"
+    }${lastError?.stack ? `\nStack trace: ${lastError.stack}` : ""}`
   );
 }
 
