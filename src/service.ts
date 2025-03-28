@@ -1,5 +1,5 @@
-import { Octokit } from 'octokit';
-import { components } from '@octokit/openapi-types';
+import { Octokit } from "octokit";
+import { components } from "@octokit/openapi-types";
 import {
   AuthResponse,
   IssuesResponse,
@@ -9,20 +9,22 @@ import {
   RateLimitResponse,
   RateLimitResult,
   RepositoryStats,
-} from './types.js';
+} from "./types.js";
 
-type Repository = components['schemas']['repository'];
+type Repository = components["schemas"]["repository"];
+type Issue = components["schemas"]["issue"];
+type IssueComment = components["schemas"]["issue-comment"];
 
 export class OctokitClient {
   private readonly octokit_headers = {
-    'X-GitHub-Api-Version': '2022-11-28',
+    "X-GitHub-Api-Version": "2022-11-28",
   };
 
   constructor(private readonly octokit: Octokit) {}
 
   async generateAppToken(): Promise<string> {
     const appToken = (await this.octokit.auth({
-      type: 'installation',
+      type: "installation",
     })) as AuthResponse;
     process.env.GH_TOKEN = appToken.token;
     return appToken.token;
@@ -30,17 +32,17 @@ export class OctokitClient {
 
   async *listReposForOrg(
     org: string,
-    per_page: number,
-  ): AsyncGenerator<components['schemas']['repository'], void, unknown> {
+    per_page: number
+  ): AsyncGenerator<components["schemas"]["repository"], void, unknown> {
     const iterator = this.octokit.paginate.iterator(
       this.octokit.rest.repos.listForOrg,
       {
         org,
-        type: 'all',
+        type: "all",
         per_page: per_page,
         page: 1,
         headers: this.octokit_headers,
-      },
+      }
     );
 
     for await (const { data: repos } of iterator) {
@@ -54,7 +56,7 @@ export class OctokitClient {
   async *getOrgRepoStats(
     org: string,
     per_page: number,
-    cursor: string | null = null,
+    cursor: string | null = null
   ): AsyncGenerator<RepositoryStats, void, unknown> {
     const query = `
       query orgRepoStats($login: String!, $pageSize: Int!, $cursor: String) {
@@ -176,7 +178,7 @@ export class OctokitClient {
   async getRepoStats(
     owner: string,
     repo: string,
-    per_page: number,
+    per_page: number
   ): Promise<RepositoryStats> {
     const query = `
       query repoStats($owner: String!, $name: String!, $pageSize: Int!) {
@@ -289,7 +291,7 @@ export class OctokitClient {
     owner: string,
     repo: string,
     per_page: number,
-    cursor: string | null = null,
+    cursor: string | null = null
   ): AsyncGenerator<IssueStats, void, unknown> {
     const query = `
       query repoIssues($owner: String!, $repo: String!, $pageSize: Int!, $cursor: String) {
@@ -318,7 +320,7 @@ export class OctokitClient {
         repo,
         pageSize: per_page,
         cursor,
-      },
+      }
     );
 
     for await (const response of iterator) {
@@ -333,7 +335,7 @@ export class OctokitClient {
     owner: string,
     repo: string,
     per_page: number,
-    cursor: string | null = null,
+    cursor: string | null = null
   ): AsyncGenerator<PullRequestNode, void, unknown> {
     const query = `
       query repoPullRequests($owner: String!, $repo: String!, $pageSize: Int!, $cursor: String) {
@@ -384,15 +386,15 @@ export class OctokitClient {
 
   async checkRateLimits(
     sleepSeconds = 60,
-    maxRetries = 5,
+    maxRetries = 5
   ): Promise<RateLimitResult> {
     const result: RateLimitResult = {
       apiRemainingRequest: 0,
-      apiRemainingMessage: '',
+      apiRemainingMessage: "",
       graphQLRemaining: 0,
-      graphQLMessage: '',
-      message: '',
-      messageType: 'info',
+      graphQLMessage: "",
+      message: "",
+      messageType: "info",
     };
 
     try {
@@ -400,7 +402,7 @@ export class OctokitClient {
       const rateLimitCheck = await this.getRateLimitData();
 
       if (!rateLimitCheck) {
-        throw new Error('Failed to get rate limit data');
+        throw new Error("Failed to get rate limit data");
       }
 
       result.graphQLRemaining = rateLimitCheck.graphQLRemaining;
@@ -419,50 +421,116 @@ export class OctokitClient {
 
         if (sleepCounter > maxRetries) {
           result.message = `Exceeded maximum retry attempts of ${maxRetries}`;
-          result.messageType = 'error';
+          result.messageType = "error";
           return result;
         }
 
         result.message = warningMessage;
-        result.messageType = 'warning';
+        result.messageType = "warning";
         result.graphQLMessage = warningMessage;
 
         await new Promise((resolve) =>
-          setTimeout(resolve, sleepSeconds * 1000),
+          setTimeout(resolve, sleepSeconds * 1000)
         );
       } else {
         const message = `Rate limits remaining: ${rateLimitCheck.graphQLRemaining.toLocaleString()} GraphQL points ${rateLimitCheck.coreRemaining.toLocaleString()} REST calls`;
         result.message = message;
-        result.messageType = 'info';
+        result.messageType = "info";
         result.graphQLMessage = message;
       }
     } catch (error) {
       result.message =
         error instanceof Error
           ? error.message
-          : 'Failed to get valid response back from GitHub API!';
-      result.messageType = 'error';
+          : "Failed to get valid response back from GitHub API!";
+      result.messageType = "error";
     }
 
     return result;
   }
 
   private async getRateLimitData(): Promise<RateLimitCheck | null> {
-    const response = await this.octokit.request('GET /rate_limit');
+    const response = await this.octokit.request("GET /rate_limit");
     const rateLimitData = response.data as RateLimitResponse;
 
-    if (rateLimitData.message === 'Rate limiting is not enabled.') {
+    if (rateLimitData.message === "Rate limiting is not enabled.") {
       return {
         graphQLRemaining: 9999999999,
         coreRemaining: 9999999999,
-        message: 'API rate limiting is not enabled.',
+        message: "API rate limiting is not enabled.",
       };
     }
 
     return {
       graphQLRemaining: rateLimitData.resources?.graphql.remaining || 0,
       coreRemaining: rateLimitData.resources?.core.remaining || 0,
-      message: '',
+      message: "",
     };
+  }
+
+  async findMigrationIssue(owner: string, repo: string): Promise<Issue | null> {
+    // const iterator = this.octokit.paginate.iterator(
+    //   this.octokit.rest.issues.listForRepo,
+    //   {
+    //     owner,
+    //     repo,
+    //     per_page: 1,
+    //     sort: "created",
+    //     direction: "desc",
+    //     state: "all",
+    //   }
+    // );
+
+    // for await (const { data: issues } of iterator) {
+    //   for (const issue of issues) {
+    //     if (issue.title.includes("Migration Log")) {
+    //       return issue;
+    //     }
+    //   }
+    // }
+
+    // return null;
+
+    const request = await this.octokit.request(
+      "GET /repos/{owner}/{repo}/issues",
+      {
+        owner,
+        repo,
+        per_page: 10, // should only need 1 but just in case lets grab 10
+        sort: "created",
+        direction: "desc",
+        state: "all",
+        headers: this.octokit_headers,
+      }
+    );
+
+    // Find the first issue with "Migration Log" in the title
+    const migrationIssue = request.data.find((issue) =>
+      issue.title.includes("Migration Log")
+    );
+
+    return migrationIssue || null;
+  }
+
+  async *listIssueComments(
+    owner: string,
+    repo: string,
+    issue_number: number
+  ): AsyncGenerator<IssueComment, void, unknown> {
+    const iterator = this.octokit.paginate.iterator(
+      this.octokit.rest.issues.listComments,
+      {
+        owner,
+        repo,
+        issue_number,
+        per_page: 100,
+      }
+    );
+
+    for await (const { data: comments } of iterator) {
+      for (const comment of comments) {
+        yield comment;
+      }
+    }
   }
 }

@@ -285,3 +285,22 @@ export interface RepoProcessingResult {
   successCount: number;
   retryCount: number;
 }
+
+export interface MigrationLogEntry {
+  timestamp: Date;
+  level: "INFO" | "WARN" | "ERROR" | "DEBUG";
+  message: string;
+}
+
+export interface MigrationSummary {
+  migrationId: string;
+  sourceRepo: string;
+  targetRepo: string;
+  startedBy: string;
+  startTime: string;
+  completionTime: string;
+  duration: number; // in seconds
+  status: "completed" | "failed" | "unknown";
+  warnings: string[];
+  errors: string[];
+}
