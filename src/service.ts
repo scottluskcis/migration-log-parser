@@ -469,28 +469,6 @@ export class OctokitClient {
   }
 
   async findMigrationIssue(owner: string, repo: string): Promise<Issue | null> {
-    // const iterator = this.octokit.paginate.iterator(
-    //   this.octokit.rest.issues.listForRepo,
-    //   {
-    //     owner,
-    //     repo,
-    //     per_page: 1,
-    //     sort: "created",
-    //     direction: "desc",
-    //     state: "all",
-    //   }
-    // );
-
-    // for await (const { data: issues } of iterator) {
-    //   for (const issue of issues) {
-    //     if (issue.title.includes("Migration Log")) {
-    //       return issue;
-    //     }
-    //   }
-    // }
-
-    // return null;
-
     const request = await this.octokit.request(
       "GET /repos/{owner}/{repo}/issues",
       {
