@@ -14,6 +14,7 @@ interface MissingReposArguments extends Arguments {
   sourcePrivateKey?: string | undefined;
   sourcePrivateKeyFile?: string | undefined;
   sourceAppInstallationId?: string | undefined;
+  repoSuffix?: string | undefined;
 }
 
 const getMissingReposCommand = new commander.Command();
@@ -161,6 +162,12 @@ getMissingReposCommand
       .default("5")
       .argParser(parseIntOption)
   )
+  .addOption(
+    new Option(
+      "--repo-suffix <suffix>",
+      "Optional suffix to append when checking target repository names"
+    ).env("REPO_SUFFIX")
+  )
   .action(async (opts: MissingReposArguments) => {
     // first create a client for the source, will need to map the source specific properties
     const { logger, client: sourceClient } = await init_client({
@@ -246,7 +253,16 @@ getMissingReposCommand
     const missingRepos = [];
 
     for (const [repoKey, repoData] of sourceRepos.entries()) {
-      if (!targetRepos.has(repoKey)) {
+      // Check if the repo exists in target with original name
+      const hasOriginalName = targetRepos.has(repoKey);
+
+      // If suffix provided, also check if repo exists with suffix
+      const hasSuffixName = opts.repoSuffix
+        ? targetRepos.has(`${repoKey}${opts.repoSuffix.toLowerCase()}`)
+        : false;
+
+      // Only add to missing repos if neither original nor suffixed name exists
+      if (!hasOriginalName && !hasSuffixName) {
         missingRepos.push({
           name: repoData.name,
         });
